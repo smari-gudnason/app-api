@@ -166,11 +166,16 @@ app.get('/api/sku/:sku', async (req, res) => {
 
 // ⚠️ einföld lausn: sækjum ALLT (virkar 100%)
 async function fetchDKProducts() {
+
+
+    
   const res = await fetch(`${DK_API_URL}`, {
     headers: {
       Authorization: `Bearer ${DK_TOKEN}`
     }
   });
+
+  console.log('DK STATUS:', res.status);
 
   const data = await res.json();
   return data.items || data || [];
