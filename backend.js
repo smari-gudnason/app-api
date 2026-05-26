@@ -149,5 +149,20 @@ app.listen(PORT, async () => {
   console.log('Backend running on port ' + PORT);
 
   await initDb();
-  await syncFull();
+  
+  // if (!lastSync) {
+  // await syncFull();
+  //  }
+
+  
+app.get('/api/sync', async (req, res) => {
+  try {
+    await syncFull();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 });
