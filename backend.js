@@ -208,7 +208,7 @@ async function upsertProduct(p) {
 // 🔵 FULL SYNC
 async function syncFull() {
   console.log('🔵 FULL SYNC');
-  console.log(proucts[0]);
+  console.log(products[0]);
 
   const products = await fetchDKProducts();
 
