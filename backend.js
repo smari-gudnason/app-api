@@ -114,6 +114,8 @@ async function syncFull() {
   console.log('FULL SYNC');
 
   const products = await fetchDKProducts();
+  console.log('FIRST PRODUCT:', products[0]);
+
   console.log('COUNT:', products.length);
   console.log('FIRST:', products[0]);
 
