@@ -262,6 +262,7 @@ async function initDb() {
 
 app.listen(PORT, async () => {
   console.log('Backend running on port ' + PORT);
+  await initDb();
 
 
   await syncFull();
