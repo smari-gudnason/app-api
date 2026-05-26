@@ -45,6 +45,7 @@ const pool = new Pool({
 });
 
 // -------------------- DB INIT --------------------
+await pool.query('DROP TABLE IF EXISTS size_variant;');
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS size_variant (
