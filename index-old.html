@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="is">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Catalog V2</title>
+  <style>
+    :root{
+      --bg:#0f1115; --panel:#151924; --panel2:#0f1320;
+      --text:#f2f4f8; --muted:#a7b0c3; --border:#2a3246;
+      --ok:#1f6f4a; --low:#6b4a12; --out:#2b2f3a;
+      --accent:#7c5cff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
+
+    /* Sticky header (mobile friendly) */
+    .header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg, rgba(15,17,21,.98), rgba(15,17,21,.92));backdrop-filter: blur(10px);border-bottom:1px solid var(--border)}
+    .header .wrap{max-width:1100px;margin:0 auto;padding:12px 12px 10px}
+    .hrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .title{font-weight:900;letter-spacing:.2px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+    input,select,button{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:12px;padding:10px 12px;outline:none}
+    input{min-width:min(420px, 100%)}
+    select{min-width:190px}
+    button{cursor:pointer;font-weight:800}
+    button:hover{border-color:#3a4664}
+
+    .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);border-radius:999px;padding:8px 12px;background:rgba(255,255,255,.03);color:var(--muted);font-size:12px}
+    .pill strong{color:var(--text)}
+
+    .main{max-width:1100px;margin:0 auto;padding:12px}
+
+    .card{border:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));border-radius:16px;padding:12px;margin-bottom:12px}
+    .cardTitle{font-weight:900}
+    .cardMeta{color:var(--muted);font-size:12px;margin-top:4px}
+    .colorBox{display:inline-block;margin-top:6px;padding:4px 8px;border:1px solid #3a4664;border-radius:8px;background:rgba(0,0,0,.18);font-size:12px}
+
+    .sizes{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .sizeBtn{min-width:74px;padding:8px 10px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.12);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;user-select:none}
+    .sizeBtn .sz{font-weight:900}
+    .sizeBtn .sub{font-size:11px;color:rgba(255,255,255,.75)}
+    .sizeBtn .sub2{font-size:10px;color:rgba(255,255,255,.60)}
+    .sizeBtn.ok{background:rgba(31,111,74,.28);border-color:rgba(76,214,140,.25)}
+    .sizeBtn.low{background:rgba(107,74,18,.35);border-color:rgba(255,210,125,.25)}
+    .sizeBtn.out{background:rgba(43,47,58,.28);border-style:dashed;opacity:.85}
+
+    /* Drawer */
+    .drawerBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter: blur(10px);display:none;z-index:2000}
+    .drawer{position:fixed;top:0;right:-100%;height:100vh;width:min(460px, 94vw);background:linear-gradient(180deg, rgba(21,25,36,.98), rgba(15,17,21,.98));border-left:1px solid var(--border);padding:12px;transition:right .2s ease;z-index:2001;overflow:auto}
+    .drawer.open{right:0}
+    .drawerHeader{position:sticky;top:0;z-index:2002;background:rgba(21,25,36,.98);padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .drawerTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .drawerTitle{font-weight:950}
+    .drawerMeta{color:var(--muted);font-size:12px;margin-top:4px}
+    .closeBtn{padding:8px 10px;border-radius:12px}
+
+    .colorChips{display:flex;gap:8px;overflow:auto;padding:10px 0}
+    .chip{padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(0,0,0,.12);cursor:pointer;white-space:nowrap;font-weight:800}
+    .chip.active{background:rgba(124,92,255,.18);border-color:rgba(124,92,255,.5)}
+
+    .variantBox{padding:10px;margin:8px 0;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.10);cursor:pointer}
+    .variantBox.active{border-color:rgba(156,207,255,.65);background:rgba(38,59,77,.65)}
+    .variantTop{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+    .variantSku{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:rgba(255,255,255,.70);margin-top:6px}
+    .variantStock{font-size:11px;color:rgba(255,255,255,.70);margin-top:2px}
+
+    /* Scanner overlay */
+    .scanOverlay{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.88);display:none;flex-direction:column}
+    .scanBar{position:sticky;top:0;z-index:5001;display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(17,17,17,.95);border-bottom:1px solid #333}
+    .scanStage{position:relative;flex:1;display:flex;align-items:center;justify-content:center}
+    .scanStage video{width:100%;height:100%;object-fit:cover}
+    .scanBox{position:absolute;width:min(520px, 76%);aspect-ratio:3/1;border:2px solid rgba(255,255,255,.85);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.25) inset}
+    .scanHint{position:absolute;bottom:16px;left:12px;right:12px;text-align:center;color:rgba(255,255,255,.85);font-size:13px}
+
+    @media (max-width: 520px){
+      select{min-width:140px}
+      input{min-width:100%}
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="wrap">
+    <div class="hrow">
+      <div class="title">Catalog V2</div>
+      <span class="pill" id="statusPill"><strong>Engar síur</strong></span>
+    </div>
+    <div class="controls" style="margin-top:10px">
+      <button id="scanBtn" title="Skanna strikamerki">📷 Skanna</button>
+      <input id="search" placeholder="Leita (heiti, SKU, style, litur...)" />
+      <select id="brandSelect"></select>
+      <button id="clearBtn" title="Hreinsa">Hreinsa</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="list"></div>
+</div>
+
+<div id="drawerBackdrop" class="drawerBackdrop"></div>
+<div id="drawer" class="drawer">
+  <div class="drawerHeader">
+    <div class="drawerTop">
+      <div>
+        <div id="drawerTitle" class="drawerTitle"></div>
+        <div id="drawerMeta" class="drawerMeta"></div>
+      </div>
+      <button id="drawerClose" class="closeBtn">Loka</button>
+    </div>
+    <div id="drawerColors" class="colorChips"></div>
+    <div style="color:var(--muted);font-size:12px">Veldu stærð (smelltu):</div>
+  </div>
+  <div id="drawerVariants"></div>
+</div>
+
+<!-- Scanner overlay -->
+<div id="scanOverlay" class="scanOverlay">
+  <div class="scanBar">
+    <div style="font-weight:900">Skanna strikamerki</div>
+    <button id="scanClose" class="closeBtn">Loka</button>
+  </div>
+  <div class="scanStage">
+    <video id="scanVideo" playsinline></video>
+    <div class="scanBox"></div>
+    <div class="scanHint">Haltu strikamerkinu inni í rammanum</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@zxing/browser@latest"></script>
+<script>
+const listEl = document.getElementById('list');
+const searchEl = document.getElementById('search');
+const brandSelect = document.getElementById('brandSelect');
+const clearBtn = document.getElementById('clearBtn');
+const statusPill = document.getElementById('statusPill');
+const scanBtn = document.getElementById('scanBtn');
+
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+const drawer = document.getElementById('drawer');
+const drawerClose = document.getElementById('drawerClose');
+const drawerTitle = document.getElementById('drawerTitle');
+const drawerMeta = document.getElementById('drawerMeta');
+const drawerColors = document.getElementById('drawerColors');
+const drawerVariants = document.getElementById('drawerVariants');
+
+const scanOverlay = document.getElementById('scanOverlay');
+const scanVideo = document.getElementById('scanVideo');
+const scanClose = document.getElementById('scanClose');
+
+let allItems = [];
+let groupedCards = [];
+let currentBrand = '';
+let currentQuery = '';
+let currentParent = null;
+let currentColor = '—';
+
+// --- robust size ordering: SHORT -> REG -> LONG, then base size
+function sizeOrder(size) {
+  const s = (size || '').toUpperCase();
+  let lengthOrder = 1;
+  if (s.includes('SHORT')) lengthOrder = 0;
+  else if (s.includes('LONG')) lengthOrder = 2;
+
+  const base = s.replace(' SHORT','').replace(' REG','').replace(' LONG','');
+  const sizeMap = ['XXXS','XXS','XS','S','M','L','XL','XXL','XXXL','3XL','4XL','5XL'];
+  const index = sizeMap.indexOf(base);
+
+  if (!isNaN(base) && base !== '') return lengthOrder * 1000 + Number(base);
+  if (index !== -1) return lengthOrder * 100 + index;
+  return 9999;
+}
+
+function fmtISK(v){
+  if (v === null || v === undefined || v === '') return '';
+  const n = Number(v);
+  if (Number.isNaN(n)) return '';
+  return n.toLocaleString('is-IS') + ' kr';
+}
+
+function setStatus(){
+  const parts = [];
+  if (currentBrand) parts.push('Brand: ' + currentBrand);
+  if (currentQuery) parts.push('Leit: ' + currentQuery);
+  const txt = parts.length ? parts.join(' • ') : 'Engar síur';
+  statusPill.innerHTML = '<strong>' + txt + '</strong>';
+}
+
+async function loadBrands(){
+  const res = await fetch('/api/brands');
+  const brands = await res.json();
+  brandSelect.innerHTML = '<option value="">Öll vörumerki</option>' +
+    brands.map(b => '<option value="' + b + '">' + b + '</option>').join('');
+}
+
+function groupItems(items){
+  const grouped = {};
+  items.forEach(item => {
+    const key = item.parent_sku + '|' + (item.color || '');
+    if (!grouped[key]) grouped[key] = { ...item, sizes: [] };
+    grouped[key].sizes.push(item);
+  });
+  Object.values(grouped).forEach(card => {
+    card.sizes.sort((a,b)=>sizeOrder(a.size)-sizeOrder(b.size));
+  });
+  return Object.values(grouped);
+}
+
+function render(){
+  setStatus();
+  listEl.innerHTML = '';
+
+  const filtered = groupedCards.filter(item => {
+    if (currentBrand && (item.brand || '') !== currentBrand) return false;
+    if (!currentQuery) return true;
+    const q = currentQuery.toLowerCase();
+    return (
+      (item.description || '').toLowerCase().includes(q) ||
+      (item.color || '').toLowerCase().includes(q) ||
+      (item.style_code || '').toLowerCase().includes(q) ||
+      (item.parent_sku || '').toLowerCase().includes(q) ||
+      (item.sizes || []).some(s => (s.sku || '').toLowerCase().includes(q))
+    );
+  });
+
+  filtered.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const t = document.createElement('div');
+    t.className = 'cardTitle';
+    t.textContent = item.description;
+
+    const meta = document.createElement('div');
+    meta.className = 'cardMeta';
+    meta.textContent = (item.brand || '') + ' | ' + (item.style_code || '');
+
+    const cbox = document.createElement('div');
+    cbox.className = 'colorBox';
+    cbox.textContent = item.color || '—';
+
+    card.appendChild(t);
+    card.appendChild(meta);
+    card.appendChild(cbox);
+
+    const sizes = document.createElement('div');
+    sizes.className = 'sizes';
+
+    item.sizes.forEach(s => {
+      const n = s.stock_bg1 || 0;
+      const btn = document.createElement('div');
+      btn.className = 'sizeBtn ' + (n === 0 ? 'out' : (n <= 2 ? 'low' : 'ok'));
+
+      const sz = document.createElement('div');
+      sz.className = 'sz';
+      sz.textContent = s.size || '—';
+
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      sub.textContent = fmtISK(s.price);
+
+      const sub2 = document.createElement('div');
+      sub2.className = 'sub2';
+      sub2.textContent = 'BG1: ' + n;
+
+      btn.appendChild(sz);
+      if (sub.textContent) btn.appendChild(sub);
+      btn.appendChild(sub2);
+
+      btn.addEventListener('click', () => openSku(s.sku));
+      sizes.appendChild(btn);
+    });
+
+    card.appendChild(sizes);
+    listEl.appendChild(card);
+  });
+}
+
+async function load(){
+  // ✅ ALWAYS query backend with brand (fixes "Julbo dropdown shows nothing")
+  let url = '/api/search?q=' + encodeURIComponent(currentQuery);
+  if (currentBrand) url += '&brand=' + encodeURIComponent(currentBrand);
+
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.ok) { listEl.textContent = 'Villa í API'; return; }
+
+  allItems = data.items || [];
+  groupedCards = groupItems(allItems);
+  render();
+}
+
+function openDrawer(){
+  drawerBackdrop.style.display = 'block';
+  drawer.classList.add('open');
+}
+
+function closeDrawer(){
+  drawerBackdrop.style.display = 'none';
+  drawer.classList.remove('open');
+}
+
+drawerClose.addEventListener('click', closeDrawer);
+drawerBackdrop.addEventListener('click', closeDrawer);
+
+async function openSku(sku){
+  const res = await fetch('/api/sku/' + encodeURIComponent(sku));
+  const d = await res.json();
+  if (!d) return;
+
+  currentParent = d.parent_sku;
+  currentColor = d.color || '—';
+
+  drawerTitle.textContent = d.name || d.sku;
+  drawerMeta.textContent = (d.brand || '') + ' | ' + (d.style_code || '') + ' | ' + (currentColor || '—');
+
+  const parentItems = allItems.filter(x => x.parent_sku === currentParent);
+  const colors = [...new Set(parentItems.map(x => x.color || '—'))];
+
+  drawerColors.innerHTML = '';
+  colors.forEach(c => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + ((c === currentColor) ? ' active' : '');
+    chip.textContent = c;
+    chip.addEventListener('click', () => switchColor(currentParent, c));
+    drawerColors.appendChild(chip);
+  });
+
+  const variants = parentItems
+    .filter(x => (x.color || '—') === currentColor)
+    .sort((a,b)=>sizeOrder(a.size)-sizeOrder(b.size));
+
+  drawerVariants.innerHTML = '';
+  variants.forEach(v => {
+    const box = document.createElement('div');
+    box.className = 'variantBox' + ((v.sku === d.sku) ? ' active' : '');
+
+    const top = document.createElement('div');
+    top.className = 'variantTop';
+    top.innerHTML = '<div><b>' + (v.size || '—') + '</b></div><div>' + fmtISK(v.price) + '</div>';
+
+    const skuLine = document.createElement('div');
+    skuLine.className = 'variantSku';
+    skuLine.textContent = 'SKU: ' + v.sku;
+
+    const stockLine = document.createElement('div');
+    stockLine.className = 'variantStock';
+    stockLine.textContent = 'BG1: ' + (v.stock_bg1||0) + ' | BG5: ' + (v.stock_bg5||0) + ' | BG6: ' + (v.stock_bg6||0);
+
+    box.appendChild(top);
+    box.appendChild(skuLine);
+    box.appendChild(stockLine);
+
+    box.addEventListener('click', () => openSku(v.sku));
+
+    drawerVariants.appendChild(box);
+  });
+
+  openDrawer();
+}
+
+function switchColor(parent, color){
+  const match = allItems.find(x => x.parent_sku === parent && (x.color || '—') === color);
+  if (match) openSku(match.sku);
+}
+
+// Slick filter UX
+let debounce;
+searchEl.addEventListener('input', () => {
+  clearTimeout(debounce);
+  currentQuery = searchEl.value.trim();
+  debounce = setTimeout(() => load(), 200);
+});
+
+brandSelect.addEventListener('change', () => {
+  currentBrand = brandSelect.value;
+  load();
+});
+
+clearBtn.addEventListener('click', () => {
+  currentQuery = '';
+  currentBrand = '';
+  searchEl.value = '';
+  brandSelect.value = '';
+  load();
+});
+
+// --- Scanner (ZXingBrowser UMD) ---
+let scanControls = null;
+let scanReader = null;
+
+scanBtn.addEventListener('click', startScanner);
+scanClose.addEventListener('click', stopScanner);
+
+async function startScanner(){
+  if (typeof ZXingBrowser === 'undefined') {
+    alert('ZXingBrowser er ekki hlaðið.');
+    return;
+  }
+
+  scanOverlay.style.display = 'flex';
+
+ scanReader = new ZXingBrowser.BrowserMultiFormatReader();
+
+scanReader.possibleFormats = [
+  ZXingBrowser.BarcodeFormat.EAN_13,
+  ZXingBrowser.BarcodeFormat.EAN_8,
+  ZXingBrowser.BarcodeFormat.UPC_A,
+  ZXingBrowser.BarcodeFormat.UPC_E
+];
+
+  try {
+    scanControls = await scanReader.decodeFromConstraints(
+      {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      },
+      scanVideo,
+      (result, err) => {
+        if (result) {
+          const code = result.getText ? result.getText() : result.text;
+          stopScanner();
+          handleBarcode(code);
+        }
+      }
+    );
+  } catch (e) {
+    stopScanner();
+    alert('Gat ekki opnað myndavél (permission/HTTPS).');
+  }
+}
+
+function stopScanner(){
+  try { if (scanControls) scanControls.stop(); } catch {}
+  scanControls = null;
+
+  try {
+    if (scanVideo && scanVideo.srcObject) {
+      scanVideo.srcObject.getTracks().forEach(t => t.stop());
+    }
+  } catch {}
+
+  try { if (scanReader) scanReader.reset(); } catch {}
+  scanReader = null;
+
+  scanOverlay.style.display = 'none';
+}
+
+async function handleBarcode(code){
+  const clean = String(code).trim();
+  const res = await fetch('/api/barcode/' + encodeURIComponent(clean));
+  const data = await res.json();
+  if (!data.found) {
+    alert('Fann ekki vöru fyrir: ' + clean);
+    return;
+  }
+  openSku(data.sku);
+}
+
+// init
+(async function init(){
+  await loadBrands();
+  await load();
+})();
+</script>
+</body>
+</html>

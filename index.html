@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="is">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Catalog</title>
+  <style>
+    :root{
+      --bg:#0f1115; --panel:#151924;
+      --text:#f2f4f8; --muted:#a7b0c3; --border:#2a3246;
+      --ok:#1f6f4a; --low:#6b4a12; --out:#2b2f3a;
+      --accent:#7c5cff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
+
+    .header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg, rgba(15,17,21,.98), rgba(15,17,21,.92));backdrop-filter: blur(10px);border-bottom:1px solid var(--border)}
+    .header .wrap{max-width:1100px;margin:0 auto;padding:12px 12px 10px}
+    .hrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .title{font-weight:900;letter-spacing:.2px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+
+    input,select,button{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:12px;padding:10px 12px;outline:none}
+    input{min-width:min(420px, 100%)}
+    select{min-width:190px}
+    button{cursor:pointer;font-weight:800}
+    button:hover{border-color:#3a4664}
+
+    .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);border-radius:999px;padding:8px 12px;background:rgba(255,255,255,.03);color:var(--muted);font-size:12px}
+    .pill strong{color:var(--text)}
+
+    .main{max-width:1100px;margin:0 auto;padding:12px}
+
+    .card{border:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));border-radius:16px;padding:12px;margin-bottom:12px}
+    .card.flash{outline:2px solid rgba(124,92,255,.55);box-shadow:0 0 0 4px rgba(124,92,255,.08)}
+    .cardTitle{font-weight:900;font-size:18px}
+    .cardMeta{color:var(--muted);font-size:12px;margin-top:4px}
+    .colorBox{display:inline-block;margin-top:6px;padding:4px 8px;border:1px solid #3a4664;border-radius:8px;background:rgba(0,0,0,.18);font-size:12px}
+
+    .sizes{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .sizeBtn{min-width:78px;padding:10px 10px;border-radius:14px;border:1px solid var(--border);background:rgba(0,0,0,.12);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;user-select:none}
+    .sizeBtn .sz{font-weight:900}
+    .sizeBtn .sub{font-size:11px;color:rgba(255,255,255,.78)}
+    .sizeBtn .sub2{font-size:10px;color:rgba(255,255,255,.60)}
+    .sizeBtn.ok{background:rgba(31,111,74,.28);border-color:rgba(76,214,140,.25)}
+    .sizeBtn.low{background:rgba(107,74,18,.35);border-color:rgba(255,210,125,.25)}
+    .sizeBtn.out{background:rgba(43,47,58,.28);border-style:dashed;opacity:.85}
+    .sizeBtn.selected{outline:2px solid rgba(156,207,255,.75);background:rgba(38,59,77,.65)}
+
+    /* Drawer */
+    .drawerBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter: blur(10px);display:none;z-index:2000}
+    .drawer{position:fixed;top:0;right:-100%;height:100vh;width:min(480px, 94vw);background:linear-gradient(180deg, rgba(21,25,36,.98), rgba(15,17,21,.98));border-left:1px solid var(--border);padding:12px;transition:right .2s ease;z-index:2001;overflow:auto}
+    .drawer.open{right:0}
+    .drawerHeader{position:sticky;top:0;z-index:2002;background:rgba(21,25,36,.98);padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .drawerTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .drawerTitle{font-weight:950;font-size:18px}
+    .drawerMeta{color:var(--muted);font-size:12px;margin-top:4px}
+
+    .colorChips{display:flex;gap:8px;overflow:auto;padding:10px 0}
+    .chip{padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(0,0,0,.12);cursor:pointer;white-space:nowrap;font-weight:800}
+    .chip.active{background:rgba(124,92,255,.18);border-color:rgba(124,92,255,.5)}
+
+    .variantBox{padding:10px;margin:8px 0;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.10);cursor:pointer}
+    .variantBox.active{border-color:rgba(156,207,255,.65);background:rgba(38,59,77,.65)}
+    .variantTop{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+    .variantSku{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:rgba(255,255,255,.70);margin-top:6px}
+    .variantStock{font-size:11px;color:rgba(255,255,255,.70);margin-top:2px}
+
+    /* Scanner overlay */
+    .scanOverlay{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.88);display:none;flex-direction:column}
+    .scanBar{position:sticky;top:0;z-index:5001;display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(17,17,17,.95);border-bottom:1px solid #333}
+    .scanStage{position:relative;flex:1}
+    #scannerViewport{position:absolute;inset:0}
+    #scannerViewport video{width:100%;height:100%;object-fit:cover}
+    .scanBox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,76%);aspect-ratio:3/1;border:2px solid rgba(255,255,255,.85);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.25) inset;pointer-events:none}
+    .scanHint{position:absolute;bottom:16px;left:12px;right:12px;text-align:center;color:rgba(255,255,255,.85);font-size:13px;pointer-events:none}
+
+    @media (max-width: 520px){
+      select{min-width:140px}
+      input{min-width:100%}
+    }
+  </style>
+  
+</head>
+<body>
+
+<div class="header">
+  <div class="wrap">
+    <div class="hrow">
+      <div class="title">Catalog</div>
+      <span class="pill" id="statusPill"><strong>Engar síur</strong></span>
+    </div>
+    <div class="controls">
+      <button id="scanBtn">📷 Skanna</button>
+      <input id="search" placeholder="Leita (heiti, SKU, style, litur...)" />
+      <select id="brandSelect"></select>
+      <button id="clearBtn">Hreinsa</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="list"></div>
+</div>
+
+<div id="drawerBackdrop" class="drawerBackdrop"></div>
+<div id="drawer" class="drawer">
+  <div class="drawerHeader">
+    <div class="drawerTop">
+      <div>
+        <div id="drawerTitle" class="drawerTitle"></div>
+        <div id="drawerMeta" class="drawerMeta"></div>
+      </div>
+      <button id="drawerClose">Loka</button>
+    </div>
+    <div id="drawerColors" class="colorChips"></div>
+    <div id="drawerSizeLabel" style="color:var(--muted);font-size:12px">Veldu stærð (smelltu):</div>
+  </div>
+  <div id="drawerVariants"></div>
+</div>
+
+<div id="scanOverlay" class="scanOverlay">
+  <div class="scanBar">
+    <div style="font-weight:900">Skanna EAN/UPC</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="cameraSelect" style="max-width:55vw"></select>
+      <button id="scanClose">Loka</button>
+      <button id="torchBtn">Ljós</button>
+    </div>
+  </div>
+  <div class="scanStage">
+    <div id="scannerViewport"></div>
+    <div class="scanBox"></div>
+    <div class="scanHint">Haltu strikamerkinu inni í rammanum</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+<script>
+const listEl = document.getElementById('list');
+const searchEl = document.getElementById('search');
+const brandSelect = document.getElementById('brandSelect');
+const clearBtn = document.getElementById('clearBtn');
+const statusPill = document.getElementById('statusPill');
+const scanBtn = document.getElementById('scanBtn');
+
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+const drawer = document.getElementById('drawer');
+const drawerClose = document.getElementById('drawerClose');
+const drawerTitle = document.getElementById('drawerTitle');
+const drawerMeta = document.getElementById('drawerMeta');
+const drawerColors = document.getElementById('drawerColors');
+const drawerVariants = document.getElementById('drawerVariants');
+const drawerSizeLabel = document.getElementById('drawerSizeLabel');
+
+const scanOverlay = document.getElementById('scanOverlay');
+const scanClose = document.getElementById('scanClose');
+const scannerViewport = document.getElementById('scannerViewport');
+const cameraSelect = document.getElementById('cameraSelect');
+
+let allItems = [];
+let groupedCards = [];
+let currentBrand = '';
+let currentQuery = '';
+
+// --- Size ordering: SHORT -> REG -> LONG then base size / numeric
+function sizeOrder(size) {
+  const s = (size || '').toUpperCase();
+  let lengthOrder = 1;
+  if (s.includes('SHORT')) lengthOrder = 0;
+  else if (s.includes('LONG')) lengthOrder = 2;
+
+  const base = s.replace(' SHORT','').replace(' REG','').replace(' LONG','');
+  const sizeMap = ['XXXS','XXS','XS','S','M','L','XL','XXL','XXXL','3XL','4XL','5XL'];
+  const index = sizeMap.indexOf(base);
+
+  if (!isNaN(base) && base !== '') return lengthOrder * 1000 + Number(base);
+  if (index !== -1) return lengthOrder * 100 + index;
+  return 9999;
+}
+
+function fmtISK(v){
+  if (v === null || v === undefined || v === '') return '';
+  const n = Number(v);
+  if (Number.isNaN(n)) return '';
+  return n.toLocaleString('is-IS') + ' kr';
+}
+
+function cssSafe(s){
+  return String(s||'').replace(/[^a-zA-Z0-9_-]/g,'_');
+}
+
+function setStatus(){
+  const parts = [];
+  if (currentBrand) parts.push('Brand: ' + currentBrand);
+  if (currentQuery) parts.push('Leit: ' + currentQuery);
+  const txt = parts.length ? parts.join(' • ') : 'Engar síur';
+  statusPill.innerHTML = '<strong>' + txt + '</strong>';
+}
+
+async function loadBrands(){
+  const res = await fetch('/api/brands');
+  const brands = await res.json();
+  brandSelect.innerHTML = '<option value="">Öll vörumerki</option>' +
+    brands.map(b => '<option value="' + b + '">' + b + '</option>').join('');
+}
+
+function groupItems(flat){
+  const grouped = {};
+  flat.forEach(row => {
+    const key = row.parent_sku + '|' + (row.color || '');
+    if (!grouped[key]) grouped[key] = { ...row, sizes: [] };
+    grouped[key].sizes.push(row);
+  });
+  Object.values(grouped).forEach(card => {
+    card.sizes.sort((a,b)=>sizeOrder(a.size)-sizeOrder(b.size));
+  });
+  return Object.values(grouped);
+}
+
+function clearHighlights(){
+  document.querySelectorAll('.sizeBtn.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.card.flash').forEach(el => el.classList.remove('flash'));
+}
+
+function highlightSkuInList(sku){
+  clearHighlights();
+  const btn = document.getElementById('btn-sku-' + cssSafe(sku));
+  if (btn) {
+    btn.classList.add('selected');
+    const card = btn.closest('.card');
+    if (card) {
+      card.classList.add('flash');
+      card.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(() => card.classList.remove('flash'), 1200);
+    } else {
+      btn.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }
+}
+
+function render(){
+  setStatus();
+  listEl.innerHTML = '';
+
+  const filtered = groupedCards.filter(item => {
+    if (currentBrand && (item.brand || '') !== currentBrand) return false;
+    if (!currentQuery) return true;
+    const q = currentQuery.toLowerCase();
+    return (
+      (item.description || '').toLowerCase().includes(q) ||
+      (item.color || '').toLowerCase().includes(q) ||
+      (item.style_code || '').toLowerCase().includes(q) ||
+      (item.parent_sku || '').toLowerCase().includes(q) ||
+      (item.sizes || []).some(s => (s.sku || '').toLowerCase().includes(q))
+    );
+  });
+
+  filtered.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const t = document.createElement('div');
+    t.className = 'cardTitle';
+    t.textContent = item.description;
+
+    const meta = document.createElement('div');
+    meta.className = 'cardMeta';
+    meta.textContent = (item.brand || '') + ' | ' + (item.style_code || '');
+
+    card.appendChild(t);
+    card.appendChild(meta);
+
+    // show color only if present
+    if (item.color) {
+      const cbox = document.createElement('div');
+      cbox.className = 'colorBox';
+      cbox.textContent = item.color;
+      card.appendChild(cbox);
+    }
+
+    const isSimple = item.sizes.length === 1 && !item.sizes[0].size && !item.color;
+
+    if (isSimple) {
+      const s = item.sizes[0];
+      const box = document.createElement('div');
+      const n = s.stock_bg1 || 0;
+      box.className = 'sizeBtn ' + (n === 0 ? 'out' : (n <= 2 ? 'low' : 'ok'));
+      box.id = 'btn-sku-' + cssSafe(s.sku);
+
+      const price = document.createElement('div');
+      price.className = 'sub';
+      price.textContent = fmtISK(s.price);
+
+      const stock = document.createElement('div');
+      stock.className = 'sub2';
+      stock.textContent = 'BG1: ' + n;
+
+      box.appendChild(price);
+      box.appendChild(stock);
+      box.addEventListener('click', () => openSku(s.sku));
+
+      card.appendChild(box);
+    } else {
+      const sizes = document.createElement('div');
+      sizes.className = 'sizes';
+
+      item.sizes.forEach(s => {
+        const n = s.stock_bg1 || 0;
+        const btn = document.createElement('div');
+        btn.className = 'sizeBtn ' + (n === 0 ? 'out' : (n <= 2 ? 'low' : 'ok'));
+        btn.id = 'btn-sku-' + cssSafe(s.sku);
+
+        if (s.size) {
+          const sz = document.createElement('div');
+          sz.className = 'sz';
+          sz.textContent = s.size;
+          btn.appendChild(sz);
+        }
+
+        if (s.price) {
+          const sub = document.createElement('div');
+          sub.className = 'sub';
+          sub.textContent = fmtISK(s.price);
+          btn.appendChild(sub);
+        }
+
+        const sub2 = document.createElement('div');
+        sub2.className = 'sub2';
+        sub2.textContent = 'BG1: ' + n;
+        btn.appendChild(sub2);
+
+        btn.addEventListener('click', () => openSku(s.sku));
+        sizes.appendChild(btn);
+      });
+
+      card.appendChild(sizes);
+    }
+
+    listEl.appendChild(card);
+  });
+}
+
+async function load(){
+  let url = '/api/search?q=' + encodeURIComponent(currentQuery);
+  if (currentBrand) url += '&brand=' + encodeURIComponent(currentBrand);
+
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.ok) { listEl.textContent = 'Villa í API'; return; }
+
+  allItems = data.items || [];
+  groupedCards = groupItems(allItems);
+  render();
+}
+
+function openDrawer(){
+  drawerBackdrop.style.display = 'block';
+  drawer.classList.add('open');
+}
+
+function closeDrawer(){
+  drawerBackdrop.style.display = 'none';
+  drawer.classList.remove('open');
+}
+
+drawerClose.addEventListener('click', closeDrawer);
+drawerBackdrop.addEventListener('click', closeDrawer);
+
+async function openSku(sku){
+  const res = await fetch('/api/sku/' + encodeURIComponent(sku));
+  const d = await res.json();
+  if (!d) return;
+
+  highlightSkuInList(d.sku);
+
+  drawerTitle.textContent = d.name || d.sku;
+  drawerMeta.textContent = (d.brand || '') + ' | ' + (d.style_code || '');
+
+  // get all variants for parent
+  const res2 = await fetch('/api/search?q=' + encodeURIComponent(d.parent_sku));
+  const data2 = await res2.json();
+  const parentItems = (data2.ok ? (data2.items||[]) : []).filter(x => x.parent_sku === d.parent_sku);
+
+  const isSimpleDrawer = parentItems.length === 1 && !parentItems[0].size && !parentItems[0].color;
+
+  // hide size label for simple
+  drawerSizeLabel.style.display = isSimpleDrawer ? 'none' : 'block';
+
+  // colors
+  drawerColors.innerHTML = '';
+  if (!isSimpleDrawer) {
+    const colors = Array.from(new Set(parentItems.map(x => x.color || '—')));
+    colors.forEach(c => {
+      const chip = document.createElement('div');
+      chip.className = 'chip' + (((d.color||'—') === c) ? ' active' : '');
+      chip.textContent = c;
+      chip.addEventListener('click', () => switchColor(d.parent_sku, c));
+      drawerColors.appendChild(chip);
+    });
+  }
+
+  // variants list
+  drawerVariants.innerHTML = '';
+
+  if (isSimpleDrawer) {
+    const s = parentItems[0] || d;
+    const box = document.createElement('div');
+    box.className = 'variantBox active';
+
+    const top = document.createElement('div');
+    top.className = 'variantTop';
+    top.innerHTML = '<div></div><div>' + fmtISK(s.price) + '</div>';
+
+    const skuLine = document.createElement('div');
+    skuLine.className = 'variantSku';
+    skuLine.textContent = 'SKU: ' + (s.sku || d.sku);
+
+    const stockLine = document.createElement('div');
+    stockLine.className = 'variantStock';
+    stockLine.textContent = 'BG1: ' + (s.stock_bg1||0) + ' | BG5: ' + (s.stock_bg5||0) + ' | BG6: ' + (s.stock_bg6||0);
+
+    box.appendChild(top);
+    box.appendChild(skuLine);
+    box.appendChild(stockLine);
+    drawerVariants.appendChild(box);
+
+  } else {
+    const currentColor = d.color || '—';
+    const variants = parentItems
+      .filter(x => (x.color || '—') === currentColor)
+      .sort((a,b)=>sizeOrder(a.size)-sizeOrder(b.size));
+
+    variants.forEach(v => {
+      const box = document.createElement('div');
+      box.className = 'variantBox' + ((v.sku === d.sku) ? ' active' : '');
+
+      const top = document.createElement('div');
+      top.className = 'variantTop';
+      top.innerHTML = '<div>' + (v.size ? '<b>'+v.size+'</b>' : '') + '</div><div>' + fmtISK(v.price) + '</div>';
+
+      const skuLine = document.createElement('div');
+      skuLine.className = 'variantSku';
+      skuLine.textContent = 'SKU: ' + v.sku;
+
+      const stockLine = document.createElement('div');
+      stockLine.className = 'variantStock';
+      stockLine.textContent = 'BG1: ' + (v.stock_bg1||0) + ' | BG5: ' + (v.stock_bg5||0) + ' | BG6: ' + (v.stock_bg6||0);
+
+      box.appendChild(top);
+      box.appendChild(skuLine);
+      box.appendChild(stockLine);
+
+      box.addEventListener('click', () => openSku(v.sku));
+      drawerVariants.appendChild(box);
+    });
+  }
+
+  openDrawer();
+}
+
+function switchColor(parentSku, color){
+  fetch('/api/search?q=' + encodeURIComponent(parentSku))
+    .then(r=>r.json())
+    .then(d=>{
+      const items = (d.ok ? d.items : []).filter(x => x.parent_sku === parentSku && (x.color||'—') === color);
+      items.sort((a,b)=>sizeOrder(a.size)-sizeOrder(b.size));
+      if (items.length) openSku(items[0].sku);
+    });
+}
+
+// Filters
+let debounce;
+searchEl.addEventListener('input', () => {
+  clearTimeout(debounce);
+  currentQuery = searchEl.value.trim();
+  debounce = setTimeout(() => load(), 200);
+});
+
+brandSelect.addEventListener('change', () => {
+  currentBrand = brandSelect.value;
+  load();
+});
+
+clearBtn.addEventListener('click', () => {
+  currentQuery = '';
+  currentBrand = '';
+  searchEl.value = '';
+  brandSelect.value = '';
+  load();
+});
+
+// --- Scanner (Quagga2) ---
+let quaggaRunning = false;
+let selectedDeviceId = localStorage.getItem('preferredCameraId') || '';
+let lastCode = null;
+let readCount = 0;
+let torchOn = false;
+
+scanBtn.addEventListener('click', startQuagga);
+scanClose.addEventListener('click', stopQuagga);
+const torchBtn = document.getElementById('torchBtn');
+
+torchBtn.addEventListener('click', () => {
+  setTorch(!torchOn);
+});
+
+cameraSelect.addEventListener('change', () => {
+  selectedDeviceId = cameraSelect.value || '';
+  localStorage.setItem('preferredCameraId', selectedDeviceId);
+  stopQuagga();
+  startQuagga();
+});
+
+function validGTIN(code) {
+  const s = String(code || '').trim();
+  if (!/^\d{12,13}$/.test(s)) return false;
+
+  const d = s.split('').map(n => parseInt(n, 10));
+  const len = d.length;
+
+  let sum = 0;
+  for (let i = 0; i < len - 1; i++) {
+    const posFromRight = (len - 2) - i;
+    const w = (posFromRight % 2 === 0) ? 3 : 1;
+    sum += d[i] * w;
+  }
+  const check = (10 - (sum % 10)) % 10;
+  return check === d[len - 1];
+}
+
+async function populateCameras(){
+  cameraSelect.innerHTML = '';
+
+  const optAuto = document.createElement('option');
+  optAuto.value = '';
+  optAuto.textContent = 'Auto (afturmyndavél)';
+  cameraSelect.appendChild(optAuto);
+
+  try {
+    const devices = await Quagga.CameraAccess.enumerateVideoDevices();
+
+    // Best guess for rear camera
+    // ✅ alltaf camera 0 (fyrsta device)
+const best = devices[0];
+
+if (!selectedDeviceId) {
+  selectedDeviceId = best?.deviceId || best?.id || '';
+}
+
+console.log('Using camera:', best?.label);
+
+
+
+
+    
+    // Only set automatically if nothing selected yet
+    if (!selectedDeviceId) {
+      selectedDeviceId = best?.deviceId || best?.id || '';
+    }
+
+    console.log('Using camera:', best?.label);
+
+    devices.forEach((dev, idx) => {
+      const opt = document.createElement('option');
+      opt.value = dev.deviceId || dev.id || '';
+      opt.textContent = dev.label || ('Myndavél ' + (idx + 1));
+      cameraSelect.appendChild(opt);
+    });
+
+    // Apply selected value to dropdown
+    cameraSelect.value = selectedDeviceId || '';
+
+    // Fallback if selected device not found
+    if (!cameraSelect.value && best) {
+      selectedDeviceId = best?.deviceId || best?.id || '';
+      cameraSelect.value = selectedDeviceId;
+    }
+
+  } catch (e) {
+    cameraSelect.value = selectedDeviceId || '';
+  }
+}
+
+
+async function setTorch(on) {
+  try {
+    const track = Quagga.CameraAccess.getActiveTrack?.();
+    if (!track) return;
+
+    const caps = track.getCapabilities?.() || {};
+    if (!caps.torch) {
+      alert('Þessi myndavél styður ekki ljós');
+      return;
+    }
+
+    await track.applyConstraints({ advanced: [{ torch: on }] });
+    torchOn = on;
+  } catch (e) {
+    console.error(e);
+  }
+}
+async function startQuagga(){
+  if (typeof Quagga === 'undefined') {
+    alert('Quagga2 er ekki hlaðið.');
+    return;
+  }
+
+  scannerViewport.innerHTML = '';
+  scanOverlay.style.display = 'flex';
+
+  await populateCameras();
+
+  const constraints = {
+    facingMode: 'environment',
+    width: { ideal: 1280 },
+    height: { ideal: 720 }
+  };
+  if (selectedDeviceId) constraints.deviceId = selectedDeviceId;
+
+  Quagga.init({
+    inputStream: {
+      name: 'Live',
+      type: 'LiveStream',
+      target: scannerViewport,
+      constraints: constraints,
+      area: { top: '40%', right: '10%', left: '10%', bottom: '40%' }
+    },
+    locate: false,
+    locator: { patchSize: 'medium', halfSample: false },
+    frequency: 8,
+    decoder: { readers: ['ean_reader','upc_reader','upc_e_reader'] }
+  }, function(err){
+    if (err) {
+      stopQuagga();
+      alert('Gat ekki opnað myndavél');
+      return;
+    }
+
+    if (!quaggaRunning) {
+      Quagga.onDetected(onQuaggaDetected);
+      Quagga.start();
+      quaggaRunning = true;
+    }
+  });
+}
+
+function onQuaggaDetected(result){
+  const code = result && result.codeResult && result.codeResult.code ? String(result.codeResult.code) : '';
+  const format = result && result.codeResult && result.codeResult.format ? String(result.codeResult.format) : '';
+
+  if (!['ean_13','upc_a','upc_e'].includes(format)) return;
+  if (!validGTIN(code)) return;
+
+  if (code === lastCode) readCount++;
+  else { lastCode = code; readCount = 1; }
+
+  if (readCount < 2) return;
+
+  
+// ✅ vibrate þegar scan er staðfest
+navigator.vibrate?.(50);
+
+
+  stopQuagga();
+  handleBarcode(code);
+
+  lastCode = null;
+  readCount = 0;
+}
+
+function stopQuagga(){
+  try {
+    if (typeof Quagga !== 'undefined') {
+      Quagga.offDetected(onQuaggaDetected);
+      Quagga.stop();
+    }
+  } catch {}
+
+  quaggaRunning = false;
+  scanOverlay.style.display = 'none';
+  scannerViewport.innerHTML = '';
+}
+
+async function handleBarcode(code){
+  let clean = String(code).trim();
+  if (clean.length === 13 && clean.startsWith('0')) clean = clean.slice(1);
+
+  const res = await fetch('/api/barcode/' + encodeURIComponent(clean));
+  const data = await res.json();
+
+  if (!data.found) {
+    alert('Fann ekki vöru fyrir: ' + clean);
+    return;
+  }
+
+  openSku(data.sku);
+}
+
+// init
+(async function init(){
+  await loadBrands();
+  await load();
+})();
+</script>
+</body>
+</html>
