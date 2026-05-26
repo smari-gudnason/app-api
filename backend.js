@@ -464,12 +464,12 @@ app.listen(PORT, () => {
     
       await initDb();
 
-      console.log('Dropped size_variant table');
+     
 
       // Full sync only if DB empty
       const n = await dbCount();
       if (n === 0) {
-        console.log('DB empty -> running initial full sync');
+        
         const out = await runFullSync({});
         console.log('Initial full sync:', out);
       } else {
