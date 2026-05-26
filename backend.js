@@ -1,4 +1,8 @@
-require('dotenv').config();
+
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 
 console.log('DATABASE_URL:', process.env.DATABASE_URL);
 
@@ -10,9 +14,12 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
+
 
 const PORT = Number(process.env.PORT || process.env.UI_PORT || 3000);
 
