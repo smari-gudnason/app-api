@@ -12,7 +12,7 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
 
-const PORT = Number(process.env.PORT || process.env.UI_PORT || 3000);
+const PORT = Number(process.env.PORT || process.env.UI_PORT || 4000);
 
 const norm = v => (v ?? '').toString().trim();
 
@@ -231,8 +231,7 @@ function startSyncJobs() {
 
 // ---------- START ----------
 app.listen(PORT, async () => {
-  console.log('Backend running on port ' + PORT);
-
+  console.log('Backend running on http://localhost:' + PORT);
 
   await syncFull();
   startSyncJobs();
