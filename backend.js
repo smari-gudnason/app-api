@@ -208,11 +208,18 @@ async function upsertProduct(p) {
 // 🔵 FULL SYNC
 async function syncFull() {
   console.log('🔵 FULL SYNC');
+  console.log(proucts[0]);
 
   const products = await fetchDKProducts();
 
   for (const p of products) {
     await upsertProduct(p);
+   
+if (!sku) {
+  console.log('NO SKU:', p);
+  return;
+}
+ 
   }
 
   lastSync = new Date();
