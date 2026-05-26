@@ -1,4 +1,4 @@
-// backend.js (FINAL - Render + Local working, with proper DK parsing)
+// backend.js - ready for Render + local
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -31,7 +31,7 @@ const DK_TOKEN = process.env.DKPLUS_TOKEN;
 
 let lastSync = null;
 
-// ---------- INIT DB ----------
+// ---------- DB INIT ----------
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS size_variant (
@@ -51,7 +51,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, lastSync });
 });
 
-// ---------- SEARCH ----------
+// ---------- SIMPLE SEARCH (WORKS 100%) ----------
 app.get('/api/search', async (req, res) => {
   try {
     const q = (req.query.q || '').toString();
@@ -69,7 +69,7 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// ---------- DK FETCH (ROBUST) ----------
+// ---------- DK FETCH ----------
 async function fetchDKProducts() {
   const res = await fetch(DK_API_URL, {
     headers: {
@@ -79,29 +79,10 @@ async function fetchDKProducts() {
 
   console.log('DK STATUS:', res.status);
 
-  const text = await res.text();
-  console.log('RAW DK RESPONSE:', text.substring(0, 500));
-
-  let data;
-
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    console.log('FAILED TO PARSE JSON');
-    return [];
-  }
-
-  // ✅ smart parsing (this is the key fix)
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.items)) return data.items;
-  if (Array.isArray(data.data)) return data.data;
-  if (data.data && Array.isArray(data.data.items)) return data.data.items;
-
-  console.log('UNKNOWN FORMAT:', data);
-  return [];
+  const data = await res.json();
+  return data.items || data || [];
 }
 
-// ---------- UPSERT ----------
 async function upsertProduct(p) {
   const sku = p.sku || p.itemCode || p.code || p.id;
 
@@ -121,21 +102,22 @@ async function upsertProduct(p) {
       stock_bg6 = EXCLUDED.stock_bg6
   `, [
     sku,
-    Number(p.price) || 0,
-    Number(p.stockBG1) || 0,
-    Number(p.stockBG5) || 0,
-    Number(p.stockBG6) || 0
+    p.price || 0,
+    p.stockBG1 || 0,
+    p.stockBG5 || 0,
+    p.stockBG6 || 0
   ]);
 }
 
-// ---------- SYNC ----------
+// ---------- FULL SYNC ----------
 async function syncFull() {
   console.log('FULL SYNC');
 
   const products = await fetchDKProducts();
+  console.log('FIRST PRODUCT:', products[0]);
 
   console.log('COUNT:', products.length);
-  console.log('FIRST PRODUCT:', products[0]);
+  console.log('FIRST:', products[0]);
 
   for (const p of products) {
     await upsertProduct(p);
