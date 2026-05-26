@@ -458,8 +458,13 @@ app.listen(PORT, () => {
 
   (async () => {
     try {
+      
+        await pool.query('DROP TABLE IF EXISTS size_variant;');
 
+    
       await initDb();
+
+      console.log('Dropped size_variant table');
 
       // Full sync only if DB empty
       const n = await dbCount();
