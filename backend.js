@@ -244,6 +244,22 @@ function startSyncJobs() {
 
 
 // ---------- START ----------
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS size_variant (
+      sku TEXT PRIMARY KEY,
+      price NUMERIC,
+      stock_bg1 INT,
+      stock_bg5 INT,
+      stock_bg6 INT
+    );
+  `);
+
+  console.log('✅ DB ready');
+}
+
+
+
 app.listen(PORT, async () => {
   console.log('Backend running on port ' + PORT);
 
